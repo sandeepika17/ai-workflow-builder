@@ -1,0 +1,22 @@
+# Nhost local configuration / secrets
+.nhost
+.secrets
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
