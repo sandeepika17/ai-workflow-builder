@@ -1,106 +1,69 @@
 import { gql, useQuery } from "@apollo/client";
+import "./App.css";
 
 const GET_WORKFLOWS = gql`
   query GetWorkflows {
     workflows {
       id
       name
-      description
-      created_at
     }
   }
 `;
 
-export default function App() {
+function App() {
   const { loading, error, data } = useQuery(GET_WORKFLOWS);
 
-  if (loading) {
-    return (
-      <main className="page">
-        <div className="container">
-          <div className="card">
-            <p>Loading workflows...</p>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="page">
-        <div className="container">
-          <div className="card error">
-            <h2>GraphQL error</h2>
-            <pre>{error.message}</pre>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  const workflows = data?.workflows ?? [];
-
   return (
-    <main className="page">
+    <main className="app">
       <div className="container">
-        <header className="header">
-          <div>
-            <p className="eyebrow">AI AUTOMATION</p>
-            <h1>AI Workflow Builder</h1>
-            <p className="subtitle">
-              Create and manage AI-powered workflows.
-            </p>
+        <h1>AI Workflow Builder</h1>
+
+        <p className="subtitle">
+          Create and manage AI-powered workflows.
+        </p>
+
+        {loading && (
+          <div className="card">
+            <div className="loading">Loading workflows...</div>
           </div>
+        )}
 
-          <button className="primaryButton">
-            + New Workflow
-          </button>
-        </header>
-
-        <section className="stats">
-          <div className="statCard">
-            <span>Total Workflows</span>
-            <strong>{workflows.length}</strong>
-          </div>
-        </section>
-
-        <section className="card">
-          <div className="sectionHeader">
-            <h2>Workflows</h2>
-            <span>{workflows.length} total</span>
-          </div>
-
-          {workflows.length === 0 ? (
-            <div className="empty">
-              <h3>No workflows yet</h3>
-              <p>Create your first workflow to get started.</p>
+        {error && (
+          <div className="card">
+            <div className="error">
+              <strong>GraphQL error</strong>
+              <p>{error.message}</p>
             </div>
-          ) : (
-            <div className="workflowGrid">
-              {workflows.map((workflow) => (
-                <article className="workflowCard" key={workflow.id}>
-                  <div>
-                    <h3>{workflow.name}</h3>
-                    <p>
-                      {workflow.description ||
-                        "AI-powered workflow"}
-                    </p>
-                  </div>
+          </div>
+        )}
 
-                  <small>
-                    {workflow.created_at
-                      ? new Date(
-                          workflow.created_at
-                        ).toLocaleDateString()
-                      : ""}
-                  </small>
+        {!loading && !error && (
+          <section className="card">
+            <div className="section-header">
+              <h2>Workflows</h2>
+              <span className="workflow-count">
+                {data?.workflows?.length ?? 0}
+              </span>
+            </div>
+
+            <div className="workflow-list">
+              {data?.workflows?.map((workflow) => (
+                <article className="workflow-item" key={workflow.id}>
+                  <h3 className="workflow-name">
+                    {workflow.name}
+                  </h3>
+
+                  <p className="workflow-id">
+                    {workflow.id}
+                  </p>
                 </article>
               ))}
             </div>
-          )}
-        </section>
+          </section>
+        )}
       </div>
     </main>
   );
 }
+
+export default App;
