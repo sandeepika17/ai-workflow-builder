@@ -1,0 +1,119 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f5f7fb;
+  color: #172033;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.header {
+  margin-bottom: 32px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.header p {
+  margin: 16px 0 0;
+  color: #5d6b82;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+}
+
+.workflow-container {
+  background: white;
+  border: 1px solid #dde3ec;
+  border-radius: 20px;
+  padding: clamp(20px, 4vw, 40px);
+  box-shadow: 0 10px 30px rgba(23, 32, 51, 0.06);
+}
+
+.workflow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.workflow-header h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+
+.workflow-count {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.workflow-list {
+  display: grid;
+  gap: 16px;
+}
+
+.workflow-card {
+  border: 1px solid #dde3ec;
+  border-radius: 14px;
+  padding: 22px;
+  background: #fafbfd;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.workflow-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(23, 32, 51, 0.08);
+}
+
+.workflow-card h3 {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+}
+
+.workflow-id {
+  color: #526078;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.error {
+  border: 1px solid #f3b3b3;
+  background: #fff5f5;
+  color: #c62828;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 24px 14px;
+  }
+
+  .workflow-container {
+    border-radius: 14px;
+    padding: 18px;
+  }
+
+  .workflow-header {
+    align-items: flex-start;
+  }
+
+  .workflow-card {
+    padding: 18px;
+  }
+}
