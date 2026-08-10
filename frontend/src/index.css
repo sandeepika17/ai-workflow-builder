@@ -12,167 +12,108 @@ body,
 body {
   font-family:
     Inter,
+    ui-sans-serif,
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  background: #f5f7fb;
-  color: #172033;
-}
-
-button {
-  font: inherit;
+  background: #f4f7fb;
+  color: #14213d;
 }
 
 .page {
   min-height: 100vh;
-  padding: 40px 20px;
+  padding: 48px 24px;
 }
 
 .container {
-  width: min(1100px, 100%);
+  width: min(100%, 1100px);
   margin: 0 auto;
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 32px;
+.hero {
+  margin-bottom: 28px;
 }
 
-.eyebrow {
-  margin: 0 0 8px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: #667085;
-}
-
-h1 {
+.hero h1 {
   margin: 0;
-  font-size: clamp(32px, 5vw, 52px);
+  font-size: clamp(2.2rem, 6vw, 4rem);
   line-height: 1.05;
+  letter-spacing: -0.04em;
 }
 
-.subtitle {
-  margin: 12px 0 0;
-  color: #667085;
-  font-size: 17px;
+.hero p {
+  margin: 14px 0 0;
+  color: #5b6b85;
+  font-size: clamp(1rem, 2vw, 1.2rem);
 }
 
-.primaryButton {
-  border: 0;
-  border-radius: 10px;
-  padding: 12px 18px;
-  background: #172033;
-  color: white;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.primaryButton:hover {
-  opacity: 0.9;
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.statCard,
 .card {
   background: white;
-  border: 1px solid #e4e7ec;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(16, 24, 40, 0.04);
+  border: 1px solid #dce3ed;
+  border-radius: 18px;
+  padding: clamp(20px, 4vw, 36px);
+  box-shadow: 0 10px 30px rgba(20, 33, 61, 0.06);
 }
 
-.statCard {
-  padding: 22px;
-}
-
-.statCard span {
-  display: block;
-  color: #667085;
-  font-size: 14px;
-  margin-bottom: 8px;
-}
-
-.statCard strong {
-  font-size: 32px;
-}
-
-.card {
-  padding: 24px;
-}
-
-.sectionHeader {
+.section-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 28px;
 }
 
-.sectionHeader h2 {
+.section-header h2 {
   margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
 }
 
-.sectionHeader span {
-  color: #667085;
-  font-size: 14px;
+.count {
+  font-weight: 700;
+  font-size: 1.25rem;
 }
 
-.workflowGrid {
+.workflow-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
-.workflowCard {
-  border: 1px solid #e4e7ec;
-  border-radius: 12px;
+.workflow {
+  border: 1px solid #dce3ed;
+  border-radius: 14px;
   padding: 20px;
-  background: #fafbfc;
-  min-width: 0;
-}
-
-.workflowCard h3 {
-  margin: 0 0 8px;
+  background: #fbfcfe;
   overflow-wrap: anywhere;
 }
 
-.workflowCard p {
-  margin: 0 0 18px;
-  color: #667085;
+.workflow h3 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+
+.workflow p {
+  margin: 0;
+  color: #52627b;
+  font-size: 0.95rem;
   overflow-wrap: anywhere;
 }
 
-.workflowCard small {
-  color: #98a2b3;
-}
-
-.empty {
-  text-align: center;
-  padding: 60px 20px;
-  color: #667085;
-}
-
-.empty h3 {
-  color: #172033;
+.status {
+  color: #52627b;
 }
 
 .error {
-  border-color: #fda29b;
-  background: #fff6f5;
+  border: 1px solid #f1b8b8;
+  background: #fff7f7;
+  border-radius: 12px;
+  padding: 18px;
+  overflow-x: auto;
 }
 
-.error h2 {
+.error h3 {
+  margin-top: 0;
   color: #b42318;
 }
 
@@ -182,40 +123,25 @@ h1 {
   color: #b42318;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 600px) {
   .page {
     padding: 24px 14px;
   }
 
-  .header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .primaryButton {
-    width: 100%;
-  }
-
-  .stats {
-    grid-template-columns: 1fr;
-  }
-
-  .workflowGrid {
-    grid-template-columns: 1fr;
+  .hero {
+    margin-bottom: 20px;
   }
 
   .card {
+    border-radius: 14px;
     padding: 18px;
   }
-}
 
-@media (max-width: 400px) {
-  h1 {
-    font-size: 30px;
+  .section-header {
+    margin-bottom: 20px;
   }
 
-  .sectionHeader {
-    align-items: flex-start;
-    flex-direction: column;
+  .workflow {
+    padding: 16px;
   }
 }

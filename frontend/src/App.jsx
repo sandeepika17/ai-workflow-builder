@@ -1,6 +1,6 @@
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
-import "./App.css";
+
 const GET_WORKFLOWS = gql`
   query GetWorkflows {
     workflows {
@@ -10,60 +10,50 @@ const GET_WORKFLOWS = gql`
   }
 `;
 
-function App() {
+export default function App() {
   const { loading, error, data } = useQuery(GET_WORKFLOWS);
 
   return (
-    <main className="app">
+    <main className="page">
       <div className="container">
-        <h1>AI Workflow Builder</h1>
+        <header className="hero">
+          <h1>AI Workflow Builder</h1>
+          <p>Create and manage AI-powered workflows.</p>
+        </header>
 
-        <p className="subtitle">
-          Create and manage AI-powered workflows.
-        </p>
-
-        {loading && (
-          <div className="card">
-            <div className="loading">Loading workflows...</div>
+        <section className="card">
+          <div className="section-header">
+            <h2>Workflows</h2>
+            {!loading && !error && (
+              <span className="count">{data?.workflows?.length ?? 0}</span>
+            )}
           </div>
-        )}
 
-        {error && (
-          <div className="card">
+          {loading && <p className="status">Loading workflows...</p>}
+
+          {error && (
             <div className="error">
-              <strong>GraphQL error</strong>
-              <p>{error.message}</p>
+              <h3>GraphQL error</h3>
+              <pre>{error.message}</pre>
             </div>
-          </div>
-        )}
+          )}
 
-        {!loading && !error && (
-          <section className="card">
-            <div className="section-header">
-              <h2>Workflows</h2>
-              <span className="workflow-count">
-                {data?.workflows?.length ?? 0}
-              </span>
-            </div>
-
+          {!loading && !error && (
             <div className="workflow-list">
-              {data?.workflows?.map((workflow) => (
-                <article className="workflow-item" key={workflow.id}>
-                  <h3 className="workflow-name">
-                    {workflow.name}
-                  </h3>
-
-                  <p className="workflow-id">
-                    {workflow.id}
-                  </p>
-                </article>
-              ))}
+              {data?.workflows?.length === 0 ? (
+                <p className="status">No workflows yet.</p>
+              ) : (
+                data.workflows.map((workflow) => (
+                  <article className="workflow" key={workflow.id}>
+                    <h3>{workflow.name}</h3>
+                    <p>{workflow.id}</p>
+                  </article>
+                ))
+              )}
             </div>
-          </section>
-        )}
+          )}
+        </section>
       </div>
     </main>
   );
 }
-
-export default App;
