@@ -39,7 +39,7 @@ version = '0.49.1'
 mode = 'disabled'
 
 [auth.redirections]
-clientUrl = 'http://localhost:3000'
+clientUrl = 'https://YOUR-FRONTEND-DOMAIN'
 
 [auth.signUp]
 enabled = true
