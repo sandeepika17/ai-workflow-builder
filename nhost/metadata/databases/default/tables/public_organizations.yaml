@@ -1,0 +1,48 @@
+table:
+  name: organizations
+  schema: public
+array_relationships:
+  - name: org_members
+    using:
+      manual_configuration:
+        column_mapping:
+          id: org_id
+        insertion_order: null
+        remote_table:
+          name: org_members
+          schema: public
+  - name: workflows
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          name: workflows
+          schema: public
+select_permissions:
+  - role: user
+    permission:
+      columns: []
+      filter:
+        org_members:
+          user_id:
+            _eq: X-Hasura-User-Id
+      limit: 100
+    comment: ""
+update_permissions:
+  - role: user
+    permission:
+      columns: []
+      filter:
+        org_members:
+          user_id:
+            _eq: X-Hasura-User-Id
+      check: null
+    comment: ""
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        org_members:
+          user_id:
+            _eq: X-Hasura-User-Id
+    comment: ""

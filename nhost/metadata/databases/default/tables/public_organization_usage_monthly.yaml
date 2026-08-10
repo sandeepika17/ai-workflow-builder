@@ -1,0 +1,56 @@
+table:
+  name: organization_usage_monthly
+  schema: public
+object_relationships:
+  - name: organization
+    using:
+      manual_configuration:
+        column_mapping:
+          org_id: id
+        insertion_order: null
+        remote_table:
+          name: organizations
+          schema: public
+insert_permissions:
+  - role: user
+    permission:
+      check: {}
+      columns:
+        - runs_used
+        - quota_allowed
+        - organization_name
+        - usage_month
+        - org_id
+    comment: ""
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - runs_used
+        - quota_allowed
+        - organization_name
+        - usage_month
+        - org_id
+      filter:
+        organization:
+          org_members:
+            user_id:
+              _eq: X-Hasura-User-Id
+    comment: ""
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - runs_used
+        - quota_allowed
+        - organization_name
+        - usage_month
+        - org_id
+      filter: {}
+      check: {}
+    comment: ""
+delete_permissions:
+  - role: user
+    permission:
+      filter: {}
+    comment: ""
