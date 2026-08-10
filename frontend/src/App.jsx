@@ -1,6 +1,6 @@
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
-
+import "./App.css";
 const GET_WORKFLOWS = gql`
   query GetWorkflows {
     workflows {
