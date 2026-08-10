@@ -1,5 +1,4 @@
-import { gql } from "@apollo/client";
-import { useQuery } from "@apollo/client/react";
+import { gql, useQuery } from "@apollo/client";
 
 const GET_WORKFLOWS = gql`
   query GetWorkflows {
@@ -7,94 +6,101 @@ const GET_WORKFLOWS = gql`
       id
       name
       description
+      created_at
     }
   }
 `;
 
-function App() {
+export default function App() {
   const { loading, error, data } = useQuery(GET_WORKFLOWS);
 
   if (loading) {
     return (
-      <div className="app">
-        <h1>AI Workflow Builder</h1>
-        <p>Loading workflows...</p>
-      </div>
+      <main className="page">
+        <div className="container">
+          <div className="card">
+            <p>Loading workflows...</p>
+          </div>
+        </div>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="app">
-        <h1>AI Workflow Builder</h1>
-
-        <div className="error">
-          <h2>GraphQL error</h2>
-          <pre>{error.message}</pre>
+      <main className="page">
+        <div className="container">
+          <div className="card error">
+            <h2>GraphQL error</h2>
+            <pre>{error.message}</pre>
+          </div>
         </div>
-      </div>
+      </main>
     );
   }
 
+  const workflows = data?.workflows ?? [];
+
   return (
-    <div className="app">
-      <header className="header">
-        <div>
-          <h1>AI Workflow Builder</h1>
-          <p>Create and manage AI-powered workflows</p>
-        </div>
+    <main className="page">
+      <div className="container">
+        <header className="header">
+          <div>
+            <p className="eyebrow">AI AUTOMATION</p>
+            <h1>AI Workflow Builder</h1>
+            <p className="subtitle">
+              Create and manage AI-powered workflows.
+            </p>
+          </div>
 
-        <button>+ New Workflow</button>
-      </header>
+          <button className="primaryButton">
+            + New Workflow
+          </button>
+        </header>
 
-      <main>
         <section className="stats">
-          <div className="card">
+          <div className="statCard">
             <span>Total Workflows</span>
-            <strong>{data?.workflows?.length ?? 0}</strong>
-          </div>
-
-          <div className="card">
-            <span>Status</span>
-            <strong>Ready</strong>
-          </div>
-
-          <div className="card">
-            <span>Platform</span>
-            <strong>Nhost</strong>
+            <strong>{workflows.length}</strong>
           </div>
         </section>
 
-        <section className="workflow-section">
-          <h2>Workflows</h2>
+        <section className="card">
+          <div className="sectionHeader">
+            <h2>Workflows</h2>
+            <span>{workflows.length} total</span>
+          </div>
 
-          {data?.workflows?.length === 0 ? (
+          {workflows.length === 0 ? (
             <div className="empty">
               <h3>No workflows yet</h3>
               <p>Create your first workflow to get started.</p>
             </div>
           ) : (
-            <div className="workflow-grid">
-              {data.workflows.map((workflow) => (
-                <div className="workflow-card" key={workflow.id}>
-                  <h3>{workflow.name}</h3>
-
-                  <p>
-                    {workflow.description || "No description provided."}
-                  </p>
-
-                  <div className="workflow-footer">
-                    <span>Workflow</span>
-                    <button>Open</button>
+            <div className="workflowGrid">
+              {workflows.map((workflow) => (
+                <article className="workflowCard" key={workflow.id}>
+                  <div>
+                    <h3>{workflow.name}</h3>
+                    <p>
+                      {workflow.description ||
+                        "AI-powered workflow"}
+                    </p>
                   </div>
-                </div>
+
+                  <small>
+                    {workflow.created_at
+                      ? new Date(
+                          workflow.created_at
+                        ).toLocaleDateString()
+                      : ""}
+                  </small>
+                </article>
               ))}
             </div>
           )}
         </section>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
-
-export default App;
