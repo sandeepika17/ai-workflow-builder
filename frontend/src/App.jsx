@@ -423,21 +423,39 @@ function Workspace() {
         </div>
 
         <nav className="sidebar-nav">
-          <button className="nav-item active" type="button">
-            <span>⌘</span>
-            Workflows
-          </button>
+  <button
+    className="nav-item active"
+    type="button"
+    onClick={() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }}
+  >
+    <span>⌘</span>
+    Workflows
+  </button>
 
-          <button className="nav-item" type="button">
-            <span>▶</span>
-            Runs
-          </button>
+  <button
+    className="nav-item"
+    type="button"
+    onClick={() => {
+      alert("Runs page coming soon.");
+    }}
+  >
+    <span>▶</span>
+    Runs
+  </button>
 
-          <button className="nav-item" type="button">
-            <span>⚙</span>
-            Settings
-          </button>
-        </nav>
+  <button
+    className="nav-item"
+    type="button"
+    onClick={() => {
+      alert("Settings page coming soon.");
+    }}
+  >
+    <span>⚙</span>
+    Settings
+  </button>
+</nav>
 
         <div className="workspace-user">
           <span className="user-avatar">
@@ -473,7 +491,7 @@ function Workspace() {
                 setWorkflowError("");
                 setShowCreateWorkflow(true);
               }}
-              disabled={!organizationId}
+              disabled={false}
             >
               + &nbsp; New Workflow
             </button>
