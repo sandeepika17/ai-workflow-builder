@@ -27,7 +27,6 @@ const CREATE_ORGANIZATION = gql`
     insert_organizations_one(
       object: {
         name: $name
-        created_by: null
       }
     ) {
       id
@@ -202,9 +201,14 @@ function AuthScreen() {
           </label>
 
           {error && <div className="auth-error">{error}</div>}
+
           {success && <div className="auth-success">{success}</div>}
 
-          <button className="primary-button" type="submit" disabled={loading}>
+          <button
+            className="primary-button"
+            type="submit"
+            disabled={loading}
+          >
             {loading
               ? "Please wait..."
               : mode === "signin"
@@ -217,6 +221,7 @@ function AuthScreen() {
           {mode === "signin" ? (
             <>
               Don't have an account?
+
               <button
                 type="button"
                 onClick={() => {
@@ -231,6 +236,7 @@ function AuthScreen() {
           ) : (
             <>
               Already have an account?
+
               <button
                 type="button"
                 onClick={() => {
@@ -300,24 +306,33 @@ function Workspace() {
 
         const organizations = organizationData?.organizations ?? [];
 
+        /*
+         * If the user already has an organization,
+         * use the first one.
+         */
         if (organizations.length > 0) {
           if (!cancelled) {
             setOrganizationId(organizations[0].id);
           }
+
           return;
         }
 
         /*
-         * IMPORTANT:
-         * The database trigger creates the owner membership.
-         * created_by is supplied by Hasura's permission "set" rule,
-         * so we deliberately do NOT send created_by here.
+         * No organization exists yet.
+         *
+         * The Hasura permission rule is responsible for
+         * setting created_by from the authenticated user.
          */
         const result = await createOrganization({
           variables: {
             name: user.displayName?.trim() || "My Workspace",
           },
         });
+
+        if (result.error) {
+          throw new Error(result.error.message);
+        }
 
         if (result.errors?.length) {
           throw new Error(result.errors[0].message);
@@ -366,7 +381,9 @@ function Workspace() {
     setWorkflowError("");
 
     if (!organizationId) {
-      setWorkflowError("Workspace is still loading.");
+      setWorkflowError(
+        "Your workspace is not ready yet. Please wait a moment and try again."
+      );
       return;
     }
 
@@ -384,12 +401,24 @@ function Workspace() {
         },
       });
 
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+
       if (result.errors?.length) {
         throw new Error(result.errors[0].message);
       }
 
+      const createdWorkflow =
+        result.data?.insert_workflows_one;
+
+      if (!createdWorkflow?.id) {
+        throw new Error("Workflow was not created.");
+      }
+
       setWorkflowName("");
       setWorkflowDescription("");
+      setWorkflowError("");
       setShowCreateWorkflow(false);
 
       await refetchWorkflows();
@@ -400,13 +429,21 @@ function Workspace() {
     }
   }
 
+  /*
+   * IMPORTANT:
+   *
+   * We do NOT include !organizationId here.
+   *
+   * Otherwise a GraphQL/permission problem would appear
+   * forever as "Loading workspace".
+   */
   const loading =
     organizationsLoading ||
-    workflowsLoading ||
-    !organizationId;
+    (organizationId !== null && workflowsLoading);
 
   const error =
     organizationError ||
+    organizationsError?.message ||
     workflowsError?.message ||
     workflowError;
 
@@ -423,39 +460,42 @@ function Workspace() {
         </div>
 
         <nav className="sidebar-nav">
-  <button
-    className="nav-item active"
-    type="button"
-    onClick={() => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }}
-  >
-    <span>⌘</span>
-    Workflows
-  </button>
+          <button
+            className="nav-item active"
+            type="button"
+            onClick={() => {
+              window.scrollTo({
+                top: 0,
+                behavior: "smooth",
+              });
+            }}
+          >
+            <span>⌘</span>
+            Workflows
+          </button>
 
-  <button
-    className="nav-item"
-    type="button"
-    onClick={() => {
-      alert("Runs page coming soon.");
-    }}
-  >
-    <span>▶</span>
-    Runs
-  </button>
+          <button
+            className="nav-item"
+            type="button"
+            onClick={() => {
+              alert("Runs page coming soon.");
+            }}
+          >
+            <span>▶</span>
+            Runs
+          </button>
 
-  <button
-    className="nav-item"
-    type="button"
-    onClick={() => {
-      alert("Settings page coming soon.");
-    }}
-  >
-    <span>⚙</span>
-    Settings
-  </button>
-</nav>
+          <button
+            className="nav-item"
+            type="button"
+            onClick={() => {
+              alert("Settings page coming soon.");
+            }}
+          >
+            <span>⚙</span>
+            Settings
+          </button>
+        </nav>
 
         <div className="workspace-user">
           <span className="user-avatar">
@@ -465,7 +505,10 @@ function Workspace() {
           </span>
 
           <div>
-            <strong>{user?.displayName || "My Workspace"}</strong>
+            <strong>
+              {user?.displayName || "My Workspace"}
+            </strong>
+
             <span>{user?.email}</span>
           </div>
         </div>
@@ -491,7 +534,7 @@ function Workspace() {
                 setWorkflowError("");
                 setShowCreateWorkflow(true);
               }}
-              disabled={false}
+              disabled={loading || !organizationId}
             >
               + &nbsp; New Workflow
             </button>
@@ -509,42 +552,63 @@ function Workspace() {
         {showCreateWorkflow && (
           <section className="workflow-create">
             <form onSubmit={handleCreateWorkflow}>
-              <h2>Create workflow</h2>
+              <div className="workflow-create-header">
+                <div>
+                  <p className="eyebrow">NEW WORKFLOW</p>
 
-              <label>
-                Workflow name
-                <input
-                  type="text"
-                  value={workflowName}
-                  onChange={(event) =>
-                    setWorkflowName(event.target.value)
-                  }
-                  placeholder="My AI workflow"
-                  autoFocus
-                />
-              </label>
+                  <h2>Create workflow</h2>
 
-              <label>
-                Description
-                <textarea
-                  value={workflowDescription}
-                  onChange={(event) =>
-                    setWorkflowDescription(event.target.value)
-                  }
-                  placeholder="What does this workflow do?"
-                  rows="3"
-                />
-              </label>
+                  <p>
+                    Give your workflow a name and describe what it
+                    should do.
+                  </p>
+                </div>
+              </div>
+
+              <div className="workflow-form-grid">
+                <label className="workflow-field">
+                  <span>Workflow name</span>
+
+                  <input
+                    type="text"
+                    value={workflowName}
+                    onChange={(event) =>
+                      setWorkflowName(event.target.value)
+                    }
+                    placeholder="My AI workflow"
+                    autoFocus
+                  />
+                </label>
+
+                <label className="workflow-field workflow-description-field">
+                  <span>Description</span>
+
+                  <textarea
+                    value={workflowDescription}
+                    onChange={(event) =>
+                      setWorkflowDescription(event.target.value)
+                    }
+                    placeholder="Describe what this workflow should do..."
+                    rows={4}
+                  />
+                </label>
+              </div>
 
               {workflowError && (
-                <div className="auth-error">{workflowError}</div>
+                <div className="auth-error">
+                  {workflowError}
+                </div>
               )}
 
-              <div className="header-actions">
+              <div className="form-actions">
                 <button
                   className="primary-button"
                   type="submit"
-                  disabled={creatingWorkflow}
+                  disabled={
+                    creatingWorkflow ||
+                    !organizationId ||
+                    !workflowName.trim()
+                  }
                 >
                   {creatingWorkflow
                     ? "Creating..."
@@ -552,9 +616,12 @@ function Workspace() {
                 </button>
 
                 <button
-                  className="logout-button"
+                  className="secondary-button"
                   type="button"
-                  onClick={() => setShowCreateWorkflow(false)}
+                  onClick={() => {
+                    setShowCreateWorkflow(false);
+                    setWorkflowError("");
+                  }}
                 >
                   Cancel
                 </button>
@@ -584,67 +651,87 @@ function Workspace() {
           <div className="section-heading">
             <div>
               <h2>Your workflows</h2>
-              <p>Select a workflow to configure and run it.</p>
+
+              <p>
+                Select a workflow to configure and run it.
+              </p>
             </div>
 
-            <span className="count">{workflows.length}</span>
+            <span className="count">
+              {workflows.length}
+            </span>
           </div>
 
           {loading && (
-            <p className="status">Loading workspace...</p>
+            <p className="status">
+              Loading workspace...
+            </p>
           )}
 
-          {error && !loading && (
+          {error && (
             <div className="error">
-              <h3>GraphQL error</h3>
+              <h3>Workspace error</h3>
+
               <pre>{error}</pre>
             </div>
           )}
 
-          {!loading && !error && workflows.length === 0 && (
-            <p className="status">
-              No workflows yet. Click <strong>New Workflow</strong> to
-              create your first one.
-            </p>
-          )}
+          {!loading &&
+            !error &&
+            workflows.length === 0 && (
+              <p className="status">
+                No workflows yet. Click{" "}
+                <strong>New Workflow</strong> to create your
+                first one.
+              </p>
+            )}
 
-          {!loading && !error && workflows.length > 0 && (
-            <div className="workflow-grid">
-              {workflows.map((workflow) => (
-                <article
-                  className="workflow-card"
-                  key={workflow.id}
-                >
-                  <div className="workflow-card-top">
-                    <div className="workflow-icon">✦</div>
-
-                    <span className="ready">
-                      <span>●</span> Ready
-                    </span>
-                  </div>
-
-                  <h3>{workflow.name}</h3>
-
-                  {workflow.description && (
-                    <p>{workflow.description}</p>
-                  )}
-
-                  <div className="workflow-divider" />
-
-                  <small>ID</small>
-
-                  <code>{workflow.id}</code>
-
-                  <button
-                    className="open-workflow"
-                    type="button"
+          {!loading &&
+            !error &&
+            workflows.length > 0 && (
+              <div className="workflow-grid">
+                {workflows.map((workflow) => (
+                  <article
+                    className="workflow-card"
+                    key={workflow.id}
                   >
-                    Open workflow →
-                  </button>
-                </article>
-              ))}
-            </div>
-          )}
+                    <div className="workflow-card-top">
+                      <div className="workflow-icon">
+                        ✦
+                      </div>
+
+                      <span className="ready">
+                        <span>●</span> Ready
+                      </span>
+                    </div>
+
+                    <h3>{workflow.name}</h3>
+
+                    {workflow.description && (
+                      <p>{workflow.description}</p>
+                    )}
+
+                    <div className="workflow-divider" />
+
+                    <small>ID</small>
+
+                    <code>{workflow.id}</code>
+
+                    <button
+                      className="open-workflow"
+                      type="button"
+                      onClick={() => {
+                        alert(
+                          "Workflow editor coming soon."
+                        );
+                      }}
+                    >
+                      Open workflow →
+                    </button>
+                  </article>
+                ))}
+              </div>
+            )}
         </section>
       </main>
     </div>
