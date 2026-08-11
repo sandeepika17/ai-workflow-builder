@@ -56,13 +56,14 @@ select_permissions:
         - created_at
         - updated_at
       filter:
-        created_by:
-           _eq: X-Hasura-User-Id
-      query_root_fields:
-        - select
-      subscription_root_fields:
-        - select
-    comment: ""
+  organization:
+    org_members:
+      user_id:
+        _eq: X-Hasura-User-Id
+query_root_fields:
+  - select
+subscription_root_fields:
+  - select
 update_permissions:
   - role: user
     permission:
