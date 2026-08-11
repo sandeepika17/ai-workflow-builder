@@ -88,8 +88,3 @@ delete_permissions:
         created_by:
           _eq: X-Hasura-User-Id
 
-query_root_fields:
-  - select
-
-subscription_root_fields:
-  - select
