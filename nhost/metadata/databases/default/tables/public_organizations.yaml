@@ -1,7 +1,6 @@
 table:
   name: organizations
   schema: public
-
 array_relationships:
   - name: org_members
     using:
@@ -12,7 +11,6 @@ array_relationships:
         remote_table:
           name: org_members
           schema: public
-
   - name: workflows
     using:
       foreign_key_constraint_on:
@@ -20,7 +18,17 @@ array_relationships:
         table:
           name: workflows
           schema: public
-
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        created_by:
+          _eq: X-Hasura-User-Id
+      set:
+        created_by: X-Hasura-User-Id
+      columns:
+        - name
+    comment: ""
 select_permissions:
   - role: user
     permission:
@@ -39,19 +47,6 @@ select_permissions:
             _eq: X-Hasura-User-Id
       limit: 100
     comment: ""
-
-insert_permissions:
-  - role: user
-    permission:
-      columns:
-        - name
-      check:
-        created_by:
-          _eq: X-Hasura-User-Id
-      set:
-        created_by: X-Hasura-User-Id
-    comment: ""
-
 update_permissions:
   - role: user
     permission:
@@ -59,25 +54,24 @@ update_permissions:
         - name
       filter:
         org_members:
-          user_id:
-            _eq: X-Hasura-User-Id
           role:
             _eq: owner
+          user_id:
+            _eq: X-Hasura-User-Id
       check:
         org_members:
-          user_id:
-            _eq: X-Hasura-User-Id
           role:
             _eq: owner
+          user_id:
+            _eq: X-Hasura-User-Id
     comment: ""
-
 delete_permissions:
   - role: user
     permission:
       filter:
         org_members:
-          user_id:
-            _eq: X-Hasura-User-Id
           role:
             _eq: owner
+          user_id:
+            _eq: X-Hasura-User-Id
     comment: ""

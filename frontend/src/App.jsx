@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { gql } from "@apollo/client";
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
@@ -7,15 +7,17 @@ import {
   useUserData,
 } from "@nhost/react";
 
-const GET_ORGANIZATION = gql`
-  query GetOrganization {
-    organizations(limit: 1) {
+const GET_MY_ORGANIZATIONS = gql`
+  query GetMyOrganizations {
+    organizations {
       id
       name
       created_by
       quota_allowed
       quota_used
       quota_period_start
+      created_at
+      updated_at
     }
   }
 `;
@@ -25,22 +27,28 @@ const CREATE_ORGANIZATION = gql`
     insert_organizations_one(
       object: {
         name: $name
+        created_by: null
       }
     ) {
       id
       name
       created_by
+      quota_allowed
+      quota_used
+      quota_period_start
+      created_at
+      updated_at
     }
   }
 `;
 
 const GET_WORKFLOWS = gql`
   query GetWorkflows {
-    workflows(order_by: { created_at: desc }) {
+    workflows {
       id
-      org_id
       name
       description
+      org_id
       created_by
       created_at
       updated_at
@@ -138,7 +146,7 @@ function AuthScreen() {
   }
 
   return (
-    <main className="auth-shell">
+    <main className="auth-screen">
       <div className="auth-card">
         <div className="brand-mark">AI</div>
 
@@ -194,7 +202,6 @@ function AuthScreen() {
           </label>
 
           {error && <div className="auth-error">{error}</div>}
-
           {success && <div className="auth-success">{success}</div>}
 
           <button className="primary-button" type="submit" disabled={loading}>
@@ -246,96 +253,167 @@ function Workspace() {
   const nhost = useNhostClient();
   const user = useUserData();
 
-  const {
-    loading: organizationLoading,
-    error: organizationError,
-    data: organizationData,
-    refetch: refetchOrganization,
-  } = useQuery(GET_ORGANIZATION);
+  const [organizationId, setOrganizationId] = useState(null);
+  const [organizationError, setOrganizationError] = useState("");
 
   const {
+    data: organizationData,
+    loading: organizationsLoading,
+    error: organizationsError,
+  } = useQuery(GET_MY_ORGANIZATIONS);
+
+  const [createOrganization] = useMutation(CREATE_ORGANIZATION);
+
+  const {
+    data: workflowsData,
     loading: workflowsLoading,
     error: workflowsError,
-    data: workflowsData,
     refetch: refetchWorkflows,
-  } = useQuery(GET_WORKFLOWS);
-
-  const [createOrganization, { loading: creatingOrganization }] =
-    useMutation(CREATE_ORGANIZATION);
+  } = useQuery(GET_WORKFLOWS, {
+    skip: !organizationId,
+  });
 
   const [createWorkflow, { loading: creatingWorkflow }] =
     useMutation(CREATE_WORKFLOW);
 
-  const organization = organizationData?.organizations?.[0] ?? null;
+  const [showCreateWorkflow, setShowCreateWorkflow] = useState(false);
+  const [workflowName, setWorkflowName] = useState("");
+  const [workflowDescription, setWorkflowDescription] = useState("");
+  const [workflowError, setWorkflowError] = useState("");
+
   const workflows = workflowsData?.workflows ?? [];
 
-  async function handleCreateOrganization() {
-    const name = window.prompt(
-      "Enter a name for your workspace:",
-      user?.displayName
-        ? `${user.displayName}'s Workspace`
-        : "My Workspace"
-    );
+  useEffect(() => {
+    let cancelled = false;
 
-    if (!name?.trim()) {
-      return;
+    async function initializeOrganization() {
+      if (!user?.id || organizationsLoading) {
+        return;
+      }
+
+      setOrganizationError("");
+
+      try {
+        if (organizationsError) {
+          throw new Error(organizationsError.message);
+        }
+
+        const organizations = organizationData?.organizations ?? [];
+
+        if (organizations.length > 0) {
+          if (!cancelled) {
+            setOrganizationId(organizations[0].id);
+          }
+          return;
+        }
+
+        /*
+         * IMPORTANT:
+         * The database trigger creates the owner membership.
+         * created_by is supplied by Hasura's permission "set" rule,
+         * so we deliberately do NOT send created_by here.
+         */
+        const result = await createOrganization({
+          variables: {
+            name: user.displayName?.trim() || "My Workspace",
+          },
+        });
+
+        if (result.errors?.length) {
+          throw new Error(result.errors[0].message);
+        }
+
+        const createdOrganization =
+          result.data?.insert_organizations_one;
+
+        if (!createdOrganization?.id) {
+          throw new Error("Organization was not created.");
+        }
+
+        if (!cancelled) {
+          setOrganizationId(createdOrganization.id);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setOrganizationError(
+            err.message || "Unable to initialize your workspace."
+          );
+        }
+      }
     }
 
-    try {
-      await createOrganization({
-        variables: {
-          name: name.trim(),
-        },
-      });
+    initializeOrganization();
 
-      await refetchOrganization();
-      await refetchWorkflows();
-    } catch (err) {
-      window.alert(err.message || "Could not create workspace.");
-    }
-  }
-
-  async function handleCreateWorkflow() {
-    if (!organization) {
-      window.alert("Create your workspace first.");
-      return;
-    }
-
-    const name = window.prompt("Workflow name:");
-
-    if (!name?.trim()) {
-      return;
-    }
-
-    const description =
-      window.prompt("Workflow description:", "") ?? "";
-
-    try {
-      await createWorkflow({
-        variables: {
-          orgId: organization.id,
-          name: name.trim(),
-          description: description.trim(),
-        },
-      });
-
-      await refetchWorkflows();
-    } catch (err) {
-      window.alert(err.message || "Could not create workflow.");
-    }
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    user?.id,
+    user?.displayName,
+    organizationData,
+    organizationsLoading,
+    organizationsError,
+    createOrganization,
+  ]);
 
   async function handleLogout() {
     await nhost.auth.signOut();
   }
 
-  const loading = organizationLoading || workflowsLoading;
-  const error = organizationError || workflowsError;
+  async function handleCreateWorkflow(event) {
+    event.preventDefault();
+
+    setWorkflowError("");
+
+    if (!organizationId) {
+      setWorkflowError("Workspace is still loading.");
+      return;
+    }
+
+    if (!workflowName.trim()) {
+      setWorkflowError("Please enter a workflow name.");
+      return;
+    }
+
+    try {
+      const result = await createWorkflow({
+        variables: {
+          orgId: organizationId,
+          name: workflowName.trim(),
+          description: workflowDescription.trim() || null,
+        },
+      });
+
+      if (result.errors?.length) {
+        throw new Error(result.errors[0].message);
+      }
+
+      setWorkflowName("");
+      setWorkflowDescription("");
+      setShowCreateWorkflow(false);
+
+      await refetchWorkflows();
+    } catch (err) {
+      setWorkflowError(
+        err.message || "Unable to create workflow."
+      );
+    }
+  }
+
+  const loading =
+    organizationsLoading ||
+    workflowsLoading ||
+    !organizationId;
+
+  const error =
+    organizationError ||
+    workflowsError?.message ||
+    workflowError;
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="sidebar-brand">
+        <div className="brand">
           <div className="brand-mark">AI</div>
 
           <div>
@@ -345,17 +423,17 @@ function Workspace() {
         </div>
 
         <nav className="sidebar-nav">
-          <button className="nav-item active">
+          <button className="nav-item active" type="button">
             <span>⌘</span>
             Workflows
           </button>
 
-          <button className="nav-item">
+          <button className="nav-item" type="button">
             <span>▶</span>
             Runs
           </button>
 
-          <button className="nav-item">
+          <button className="nav-item" type="button">
             <span>⚙</span>
             Settings
           </button>
@@ -385,44 +463,87 @@ function Workspace() {
             <p>
               Create, manage, and run your AI-powered workflows.
             </p>
-
-            {organization && (
-              <small>
-                Workspace: <strong>{organization.name}</strong>
-              </small>
-            )}
           </div>
 
           <div className="header-actions">
-            {!organization && !organizationLoading && (
-              <button
-                className="new-workflow"
-                onClick={handleCreateOrganization}
-                disabled={creatingOrganization}
-              >
-                {creatingOrganization
-                  ? "Creating..."
-                  : "+ Create Workspace"}
-              </button>
-            )}
+            <button
+              className="new-workflow"
+              type="button"
+              onClick={() => {
+                setWorkflowError("");
+                setShowCreateWorkflow(true);
+              }}
+              disabled={!organizationId}
+            >
+              + &nbsp; New Workflow
+            </button>
 
-            {organization && (
-              <button
-                className="new-workflow"
-                onClick={handleCreateWorkflow}
-                disabled={creatingWorkflow}
-              >
-                {creatingWorkflow
-                  ? "Creating..."
-                  : "+ New Workflow"}
-              </button>
-            )}
-
-            <button className="logout-button" onClick={handleLogout}>
+            <button
+              className="logout-button"
+              type="button"
+              onClick={handleLogout}
+            >
               Logout
             </button>
           </div>
         </header>
+
+        {showCreateWorkflow && (
+          <section className="workflow-create">
+            <form onSubmit={handleCreateWorkflow}>
+              <h2>Create workflow</h2>
+
+              <label>
+                Workflow name
+                <input
+                  type="text"
+                  value={workflowName}
+                  onChange={(event) =>
+                    setWorkflowName(event.target.value)
+                  }
+                  placeholder="My AI workflow"
+                  autoFocus
+                />
+              </label>
+
+              <label>
+                Description
+                <textarea
+                  value={workflowDescription}
+                  onChange={(event) =>
+                    setWorkflowDescription(event.target.value)
+                  }
+                  placeholder="What does this workflow do?"
+                  rows="3"
+                />
+              </label>
+
+              {workflowError && (
+                <div className="auth-error">{workflowError}</div>
+              )}
+
+              <div className="header-actions">
+                <button
+                  className="primary-button"
+                  type="submit"
+                  disabled={creatingWorkflow}
+                >
+                  {creatingWorkflow
+                    ? "Creating..."
+                    : "Create workflow"}
+                </button>
+
+                <button
+                  className="logout-button"
+                  type="button"
+                  onClick={() => setShowCreateWorkflow(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
 
         <section className="stats">
           <div className="stat-card">
@@ -441,39 +562,6 @@ function Workspace() {
           </div>
         </section>
 
-        {organizationError && (
-          <div className="error">
-            <h3>Organization error</h3>
-            <pre>{organizationError.message}</pre>
-          </div>
-        )}
-
-        {!organizationLoading &&
-          !organizationError &&
-          !organization && (
-            <section className="workflow-section">
-              <div className="section-heading">
-                <div>
-                  <h2>Create your workspace</h2>
-                  <p>
-                    Your account needs an organization before workflows
-                    can be created.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                className="primary-button"
-                onClick={handleCreateOrganization}
-                disabled={creatingOrganization}
-              >
-                {creatingOrganization
-                  ? "Creating workspace..."
-                  : "Create workspace"}
-              </button>
-            </section>
-          )}
-
         <section className="workflow-section">
           <div className="section-heading">
             <div>
@@ -488,68 +576,57 @@ function Workspace() {
             <p className="status">Loading workspace...</p>
           )}
 
-          {error && (
+          {error && !loading && (
             <div className="error">
               <h3>GraphQL error</h3>
-              <pre>{error.message}</pre>
+              <pre>{error}</pre>
             </div>
           )}
 
-          {!loading &&
-            !error &&
-            organization &&
-            workflows.length === 0 && (
-              <div className="empty-state">
-                <p>No workflows yet.</p>
+          {!loading && !error && workflows.length === 0 && (
+            <p className="status">
+              No workflows yet. Click <strong>New Workflow</strong> to
+              create your first one.
+            </p>
+          )}
 
-                <button
-                  className="primary-button"
-                  onClick={handleCreateWorkflow}
-                  disabled={creatingWorkflow}
+          {!loading && !error && workflows.length > 0 && (
+            <div className="workflow-grid">
+              {workflows.map((workflow) => (
+                <article
+                  className="workflow-card"
+                  key={workflow.id}
                 >
-                  {creatingWorkflow
-                    ? "Creating..."
-                    : "Create your first workflow"}
-                </button>
-              </div>
-            )}
+                  <div className="workflow-card-top">
+                    <div className="workflow-icon">✦</div>
 
-          {!loading &&
-            !error &&
-            workflows.length > 0 && (
-              <div className="workflow-grid">
-                {workflows.map((workflow) => (
-                  <article
-                    className="workflow-card"
-                    key={workflow.id}
+                    <span className="ready">
+                      <span>●</span> Ready
+                    </span>
+                  </div>
+
+                  <h3>{workflow.name}</h3>
+
+                  {workflow.description && (
+                    <p>{workflow.description}</p>
+                  )}
+
+                  <div className="workflow-divider" />
+
+                  <small>ID</small>
+
+                  <code>{workflow.id}</code>
+
+                  <button
+                    className="open-workflow"
+                    type="button"
                   >
-                    <div className="workflow-card-top">
-                      <div className="workflow-icon">✦</div>
-
-                      <span className="ready">
-                        <span>●</span> Ready
-                      </span>
-                    </div>
-
-                    <h3>{workflow.name}</h3>
-
-                    {workflow.description && (
-                      <p>{workflow.description}</p>
-                    )}
-
-                    <div className="workflow-divider" />
-
-                    <small>ID</small>
-
-                    <code>{workflow.id}</code>
-
-                    <button className="open-workflow">
-                      Open workflow →
-                    </button>
-                  </article>
-                ))}
-              </div>
-            )}
+                    Open workflow →
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>
