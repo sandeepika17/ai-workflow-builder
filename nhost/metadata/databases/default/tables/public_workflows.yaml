@@ -1,13 +1,16 @@
 table:
   name: workflows
   schema: public
+
 object_relationships:
   - name: organization
     using:
       foreign_key_constraint_on: org_id
+
   - name: user
     using:
       foreign_key_constraint_on: created_by
+
 array_relationships:
   - name: workflow_runs
     using:
@@ -16,6 +19,7 @@ array_relationships:
         table:
           name: workflow_runs
           schema: public
+
   - name: workflow_steps
     using:
       foreign_key_constraint_on:
@@ -23,6 +27,7 @@ array_relationships:
         table:
           name: workflow_steps
           schema: public
+
   - name: workflow_triggers
     using:
       foreign_key_constraint_on:
@@ -30,6 +35,7 @@ array_relationships:
         table:
           name: workflow_triggers
           schema: public
+
 insert_permissions:
   - role: user
     permission:
@@ -44,6 +50,7 @@ insert_permissions:
         - org_id
         - name
         - description
+
 select_permissions:
   - role: user
     permission:
@@ -56,14 +63,11 @@ select_permissions:
         - created_at
         - updated_at
       filter:
-  organization:
-    org_members:
-      user_id:
-        _eq: X-Hasura-User-Id
-query_root_fields:
-  - select
-subscription_root_fields:
-  - select
+        organization:
+          org_members:
+            user_id:
+              _eq: X-Hasura-User-Id
+
 update_permissions:
   - role: user
     permission:
@@ -72,15 +76,20 @@ update_permissions:
         - description
       filter:
         created_by:
-              _eq: X-Hasura-User-Id
+          _eq: X-Hasura-User-Id
       check:
         created_by:
-              _eq: X-Hasura-User-Id
-    comment: ""
+          _eq: X-Hasura-User-Id
+
 delete_permissions:
   - role: user
     permission:
       filter:
         created_by:
-              _eq: X-Hasura-User-Id
-    comment: ""
+          _eq: X-Hasura-User-Id
+
+query_root_fields:
+  - select
+
+subscription_root_fields:
+  - select
