@@ -720,3 +720,133 @@ button {
     padding: 28px 22px;
   }
 }
+/* =========================================
+   WORKFLOW CREATE FORM
+   ========================================= */
+
+.workflow-create {
+  margin: 28px 0 24px;
+  padding: 28px 32px;
+  background: #ffffff;
+  border: 1px solid #d9e1ec;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(20, 35, 60, 0.06);
+}
+
+.workflow-create form {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 20px 24px;
+  align-items: end;
+}
+
+.workflow-create h2 {
+  grid-column: 1 / -1;
+  margin: 0 0 2px;
+  font-size: 25px;
+  color: #14213d;
+}
+
+.workflow-create label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-weight: 700;
+  color: #243554;
+}
+
+.workflow-create input,
+.workflow-create textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ccd6e4;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #14213d;
+  font: inherit;
+  font-size: 16px;
+  padding: 13px 15px;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.workflow-create input {
+  height: 50px;
+}
+
+.workflow-create textarea {
+  min-height: 50px;
+  resize: vertical;
+}
+
+.workflow-create input:focus,
+.workflow-create textarea:focus {
+  border-color: #526d9f;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(82, 109, 159, 0.12);
+}
+
+.workflow-create .form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.workflow-create button {
+  border: 0;
+  border-radius: 12px;
+  padding: 13px 22px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.workflow-create button[type="submit"] {
+  background: #14213d;
+  color: #ffffff;
+}
+
+.workflow-create button[type="submit"]:hover {
+  background: #1d3157;
+}
+
+.workflow-create button[type="submit"]:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.workflow-create button[type="button"] {
+  background: #fff0ef;
+  color: #b42318;
+}
+
+.workflow-create button[type="button"]:hover {
+  background: #ffe1df;
+}
+
+@media (max-width: 700px) {
+  .workflow-create {
+    padding: 22px;
+  }
+
+  .workflow-create form {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-create h2,
+  .workflow-create .form-actions {
+    grid-column: auto;
+  }
+
+  .workflow-create .form-actions {
+    flex-direction: column;
+  }
+
+  .workflow-create button {
+    width: 100%;
+  }
+}
