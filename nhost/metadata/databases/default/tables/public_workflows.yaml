@@ -1,13 +1,16 @@
 table:
   name: workflows
   schema: public
+
 object_relationships:
   - name: organization
     using:
       foreign_key_constraint_on: org_id
+
   - name: user
     using:
       foreign_key_constraint_on: created_by
+
 array_relationships:
   - name: workflow_runs
     using:
@@ -16,6 +19,7 @@ array_relationships:
         table:
           name: workflow_runs
           schema: public
+
   - name: workflow_steps
     using:
       foreign_key_constraint_on:
@@ -23,6 +27,7 @@ array_relationships:
         table:
           name: workflow_steps
           schema: public
+
   - name: workflow_triggers
     using:
       foreign_key_constraint_on:
@@ -30,32 +35,69 @@ array_relationships:
         table:
           name: workflow_triggers
           schema: public
+
 select_permissions:
-  - role: public
-    permission:
-      columns:
-        - description
-        - name
-        - created_at
-        - updated_at
-        - created_by
-        - id
-        - org_id
-      filter: {}
-    comment: ""
   - role: user
     permission:
       columns:
-        - description
-        - name
-        - created_at
-        - updated_at
-        - created_by
         - id
         - org_id
-      filter: {}
+        - name
+        - description
+        - created_by
+        - created_at
+        - updated_at
+      filter:
+        organization:
+          org_members:
+            user_id:
+              _eq: X-Hasura-User-Id
       query_root_fields:
         - select
       subscription_root_fields:
         - select
+    comment: ""
+
+insert_permissions:
+  - role: user
+    permission:
+      columns:
+        - org_id
+        - name
+        - description
+      check:
+        organization:
+          org_members:
+            user_id:
+              _eq: X-Hasura-User-Id
+      set:
+        created_by: X-Hasura-User-Id
+    comment: ""
+
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - name
+        - description
+      filter:
+        organization:
+          org_members:
+            user_id:
+              _eq: X-Hasura-User-Id
+      check:
+        organization:
+          org_members:
+            user_id:
+              _eq: X-Hasura-User-Id
+    comment: ""
+
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        organization:
+          org_members:
+            user_id:
+              _eq: X-Hasura-User-Id
     comment: ""

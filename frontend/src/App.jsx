@@ -1,18 +1,73 @@
 import { useState } from "react";
 import { gql } from "@apollo/client";
-import { useQuery } from "@apollo/client/react";
+import { useMutation, useQuery } from "@apollo/client/react";
 import {
   useAuthenticated,
   useNhostClient,
   useUserData,
 } from "@nhost/react";
 
-const GET_WORKFLOWS = gql`
-  query GetWorkflows {
-    workflows {
+const GET_ORGANIZATION = gql`
+  query GetOrganization {
+    organizations(limit: 1) {
       id
       name
+      created_by
+      quota_allowed
+      quota_used
+      quota_period_start
+    }
+  }
+`;
+
+const CREATE_ORGANIZATION = gql`
+  mutation CreateOrganization($name: String!) {
+    insert_organizations_one(
+      object: {
+        name: $name
+      }
+    ) {
+      id
+      name
+      created_by
+    }
+  }
+`;
+
+const GET_WORKFLOWS = gql`
+  query GetWorkflows {
+    workflows(order_by: { created_at: desc }) {
+      id
+      org_id
+      name
       description
+      created_by
+      created_at
+      updated_at
+    }
+  }
+`;
+
+const CREATE_WORKFLOW = gql`
+  mutation CreateWorkflow(
+    $orgId: uuid!
+    $name: String!
+    $description: String
+  ) {
+    insert_workflows_one(
+      object: {
+        org_id: $orgId
+        name: $name
+        description: $description
+      }
+    ) {
+      id
+      org_id
+      name
+      description
+      created_by
+      created_at
+      updated_at
     }
   }
 `;
@@ -83,9 +138,9 @@ function AuthScreen() {
   }
 
   return (
-    <main className="auth-page">
+    <main className="auth-shell">
       <div className="auth-card">
-        <div className="auth-logo">AI</div>
+        <div className="brand-mark">AI</div>
 
         <p className="eyebrow">AI WORKFLOW BUILDER</p>
 
@@ -191,19 +246,97 @@ function Workspace() {
   const nhost = useNhostClient();
   const user = useUserData();
 
-  const { loading, error, data } = useQuery(GET_WORKFLOWS);
+  const {
+    loading: organizationLoading,
+    error: organizationError,
+    data: organizationData,
+    refetch: refetchOrganization,
+  } = useQuery(GET_ORGANIZATION);
 
-  const workflows = data?.workflows ?? [];
+  const {
+    loading: workflowsLoading,
+    error: workflowsError,
+    data: workflowsData,
+    refetch: refetchWorkflows,
+  } = useQuery(GET_WORKFLOWS);
+
+  const [createOrganization, { loading: creatingOrganization }] =
+    useMutation(CREATE_ORGANIZATION);
+
+  const [createWorkflow, { loading: creatingWorkflow }] =
+    useMutation(CREATE_WORKFLOW);
+
+  const organization = organizationData?.organizations?.[0] ?? null;
+  const workflows = workflowsData?.workflows ?? [];
+
+  async function handleCreateOrganization() {
+    const name = window.prompt(
+      "Enter a name for your workspace:",
+      user?.displayName
+        ? `${user.displayName}'s Workspace`
+        : "My Workspace"
+    );
+
+    if (!name?.trim()) {
+      return;
+    }
+
+    try {
+      await createOrganization({
+        variables: {
+          name: name.trim(),
+        },
+      });
+
+      await refetchOrganization();
+      await refetchWorkflows();
+    } catch (err) {
+      window.alert(err.message || "Could not create workspace.");
+    }
+  }
+
+  async function handleCreateWorkflow() {
+    if (!organization) {
+      window.alert("Create your workspace first.");
+      return;
+    }
+
+    const name = window.prompt("Workflow name:");
+
+    if (!name?.trim()) {
+      return;
+    }
+
+    const description =
+      window.prompt("Workflow description:", "") ?? "";
+
+    try {
+      await createWorkflow({
+        variables: {
+          orgId: organization.id,
+          name: name.trim(),
+          description: description.trim(),
+        },
+      });
+
+      await refetchWorkflows();
+    } catch (err) {
+      window.alert(err.message || "Could not create workflow.");
+    }
+  }
 
   async function handleLogout() {
     await nhost.auth.signOut();
   }
 
+  const loading = organizationLoading || workflowsLoading;
+  const error = organizationError || workflowsError;
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-icon">AI</div>
+        <div className="sidebar-brand">
+          <div className="brand-mark">AI</div>
 
           <div>
             <strong>Workflow Builder</strong>
@@ -252,12 +385,38 @@ function Workspace() {
             <p>
               Create, manage, and run your AI-powered workflows.
             </p>
+
+            {organization && (
+              <small>
+                Workspace: <strong>{organization.name}</strong>
+              </small>
+            )}
           </div>
 
           <div className="header-actions">
-            <button className="new-workflow">
-              + &nbsp; New Workflow
-            </button>
+            {!organization && !organizationLoading && (
+              <button
+                className="new-workflow"
+                onClick={handleCreateOrganization}
+                disabled={creatingOrganization}
+              >
+                {creatingOrganization
+                  ? "Creating..."
+                  : "+ Create Workspace"}
+              </button>
+            )}
+
+            {organization && (
+              <button
+                className="new-workflow"
+                onClick={handleCreateWorkflow}
+                disabled={creatingWorkflow}
+              >
+                {creatingWorkflow
+                  ? "Creating..."
+                  : "+ New Workflow"}
+              </button>
+            )}
 
             <button className="logout-button" onClick={handleLogout}>
               Logout
@@ -282,6 +441,39 @@ function Workspace() {
           </div>
         </section>
 
+        {organizationError && (
+          <div className="error">
+            <h3>Organization error</h3>
+            <pre>{organizationError.message}</pre>
+          </div>
+        )}
+
+        {!organizationLoading &&
+          !organizationError &&
+          !organization && (
+            <section className="workflow-section">
+              <div className="section-heading">
+                <div>
+                  <h2>Create your workspace</h2>
+                  <p>
+                    Your account needs an organization before workflows
+                    can be created.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                className="primary-button"
+                onClick={handleCreateOrganization}
+                disabled={creatingOrganization}
+              >
+                {creatingOrganization
+                  ? "Creating workspace..."
+                  : "Create workspace"}
+              </button>
+            </section>
+          )}
+
         <section className="workflow-section">
           <div className="section-heading">
             <div>
@@ -293,7 +485,7 @@ function Workspace() {
           </div>
 
           {loading && (
-            <p className="status">Loading workflows...</p>
+            <p className="status">Loading workspace...</p>
           )}
 
           {error && (
@@ -303,41 +495,61 @@ function Workspace() {
             </div>
           )}
 
-          {!loading && !error && workflows.length === 0 && (
-            <p className="status">No workflows yet.</p>
-          )}
+          {!loading &&
+            !error &&
+            organization &&
+            workflows.length === 0 && (
+              <div className="empty-state">
+                <p>No workflows yet.</p>
 
-          {!loading && !error && workflows.length > 0 && (
-            <div className="workflow-grid">
-              {workflows.map((workflow) => (
-                <article className="workflow-card" key={workflow.id}>
-                  <div className="workflow-card-top">
-                    <div className="workflow-icon">✦</div>
+                <button
+                  className="primary-button"
+                  onClick={handleCreateWorkflow}
+                  disabled={creatingWorkflow}
+                >
+                  {creatingWorkflow
+                    ? "Creating..."
+                    : "Create your first workflow"}
+                </button>
+              </div>
+            )}
 
-                    <span className="ready">
-                      <span>●</span> Ready
-                    </span>
-                  </div>
+          {!loading &&
+            !error &&
+            workflows.length > 0 && (
+              <div className="workflow-grid">
+                {workflows.map((workflow) => (
+                  <article
+                    className="workflow-card"
+                    key={workflow.id}
+                  >
+                    <div className="workflow-card-top">
+                      <div className="workflow-icon">✦</div>
 
-                  <h3>{workflow.name}</h3>
+                      <span className="ready">
+                        <span>●</span> Ready
+                      </span>
+                    </div>
 
-                  {workflow.description && (
-                    <p>{workflow.description}</p>
-                  )}
+                    <h3>{workflow.name}</h3>
 
-                  <div className="workflow-divider" />
+                    {workflow.description && (
+                      <p>{workflow.description}</p>
+                    )}
 
-                  <small>ID</small>
+                    <div className="workflow-divider" />
 
-                  <code>{workflow.id}</code>
+                    <small>ID</small>
 
-                  <button className="open-workflow">
-                    Open workflow →
-                  </button>
-                </article>
-              ))}
-            </div>
-          )}
+                    <code>{workflow.id}</code>
+
+                    <button className="open-workflow">
+                      Open workflow →
+                    </button>
+                  </article>
+                ))}
+              </div>
+            )}
         </section>
       </main>
     </div>
