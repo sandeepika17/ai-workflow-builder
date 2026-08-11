@@ -1,10 +1,12 @@
 table:
   name: workflow_steps
   schema: public
+
 object_relationships:
   - name: workflow
     using:
       foreign_key_constraint_on: workflow_id
+
 array_relationships:
   - name: step_runs
     using:
@@ -13,6 +15,7 @@ array_relationships:
         table:
           name: step_runs
           schema: public
+
 insert_permissions:
   - role: user
     permission:
@@ -22,12 +25,24 @@ insert_permissions:
             org_members:
               user_id:
                 _eq: X-Hasura-User-Id
-      columns: []
+      columns:
+        - workflow_id
+        - position
+        - type
+        - config
     comment: ""
+
 select_permissions:
   - role: user
     permission:
-      columns: []
+      columns:
+        - id
+        - workflow_id
+        - position
+        - type
+        - config
+        - created_at
+        - updated_at
       filter:
         workflow:
           organization:
@@ -35,10 +50,14 @@ select_permissions:
               user_id:
                 _eq: X-Hasura-User-Id
     comment: ""
+
 update_permissions:
   - role: user
     permission:
-      columns: []
+      columns:
+        - position
+        - type
+        - config
       filter:
         workflow:
           organization:
@@ -47,6 +66,7 @@ update_permissions:
                 _eq: X-Hasura-User-Id
       check: null
     comment: ""
+
 delete_permissions:
   - role: user
     permission:
