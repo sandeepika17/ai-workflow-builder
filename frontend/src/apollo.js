@@ -7,7 +7,7 @@ import { setContext } from "@apollo/client/link/context";
 import { nhost } from "./nhost";
 
 const httpLink = new HttpLink({
-  uri: "https://local.hasura.local.nhost.run/v1/graphql",
+  uri: import.meta.env.VITE_GRAPHQL_URL,
 });
 
 const authLink = setContext((_, { headers }) => {
